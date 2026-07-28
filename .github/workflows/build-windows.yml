@@ -1,0 +1,40 @@
+name: Build Telegram Bot API (Windows)
+
+on:
+  workflow_dispatch: # Cho phép kích hoạt thủ công bằng nút bấm trên GitHub
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies via vcpkg
+        run: |
+          $env:VCPKG_ROOT = "C:/vcpkg"
+          & "$env:VCPKG_ROOT/vcpkg.exe" install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static
+
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET="x64-windows-static" `
+            -DCMAKE_BUILD_TYPE=Release `
+            ..
+
+      - name: Build Executable
+        run: |
+          cd build
+          cmake --build . --config Release --parallel
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-bot-api-windows-x64
+          path: build/Release/telegram-bot-api.exe
